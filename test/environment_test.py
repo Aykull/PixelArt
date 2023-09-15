@@ -17,7 +17,7 @@ def is_sorted(array:list[Any]) -> bool:
 
     return True 
 
-def dummy_fitness_function(objective:Image.Image, individual:Individual) -> float:
+def dummy_fitness_function(objective:Image.Image, individual_image:Image.Image) -> float:
     return random.random()
 
 def dummy_crossover_function(father:Individual, mother:Individual) -> Individual:

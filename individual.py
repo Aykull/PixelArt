@@ -104,6 +104,9 @@ class Individual:
         
         return self.fenotype
     
+    def get_genotype(self) -> Genotype:
+        return self.genotype
+
     def get_figures(self) -> list[MyRect]:
         return self.genotype.get_figures()
     

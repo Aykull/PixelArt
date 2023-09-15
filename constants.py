@@ -1,1 +1,1 @@
-CANVAS_SIZE = (50, 50)
+CANVAS_SIZE = (20, 20)
