@@ -8,17 +8,19 @@ from individual import Individual
 
 @dataclass
 class HyperParameters:
-    fitness_function: Callable[[Image.Image, Individual], float]
+    fitness_function: Callable[[Image.Image, Image.Image], float]
     crossover_function: Callable[[Individual, Individual], Individual]
     cap_population_size: int = 50
     top_individuals_percentage: float = 0.1
     mutation_probability: float = 0.1
     mutation_quantity: float = 0.1
+    max_gen:int = 100
 
 class Generation:
     def __init__(self,
                  gen_number: int,
                  population: list[Individual]=[]) -> None:
+        print(f"Created population {gen_number}")
         self.population = population
         self.gen_number = gen_number
 
@@ -43,8 +45,11 @@ class Generation:
     def get_gen_number(self) -> int:
         return self.gen_number
     
-    def get_best_fenotype(self) -> Image.Image:
-        return self.get_top_individuals(1)[0].get_fenotype()
+    def get_average_fitness(self) -> float:
+        fitness_sum = 0.0
+        for individual in self.population:
+            fitness_sum += individual.fitness_value
+        return fitness_sum / len(self.population)
 
 class Environment:
     def __init__(self,
@@ -66,11 +71,12 @@ class Environment:
         self.current_generation.set_population(initial_population)
     
     def generate_initial_population(self) -> list[Individual]:
+        print("Generating initial population!")
         population: list[Individual] = []
         for _ in range(self.cap_population_size):
             figure_quantity = random.randint(1, 5)
             individual = Individual(figure_quantity)
-            individual.randomize_figures()
+            individual.get_genotype().randomize_figures()
 
             population.append(individual)
 
@@ -79,8 +85,11 @@ class Environment:
     def calculate_fitness(self) -> None:
         for individual in self.current_generation.get_population():
             individual_fitness: float =\
-                self.fitness_function(self.objective, individual)
+                self.fitness_function(self.objective, individual.get_fenotype())
             individual.set_fitness_value(individual_fitness)
+
+        print("\tPopulation has an average fitness of "
+              f"{self.get_current_generation().get_average_fitness()}")
 
     def get_top_individuals(self) -> list[Individual]:
         quantity = math.floor(self.top_individuals_percentage * self.cap_population_size)
@@ -122,12 +131,18 @@ class Environment:
     def get_current_generation(self) -> Generation:
         return self.current_generation
 
+    def get_best_fenotype(self) -> Image.Image:
+        best_ind = self.get_top_n_individuals(1)[0]
+        return best_ind.get_fenotype()
+
     def evolve(self) -> None:
+        print("Evolving to next gen!")
         self.calculate_fitness()
         offspring = self.cross_top_individuals()
         self.mutate_individuals(offspring)
         self.current_generation.add_individuals(offspring)
 
+        print("Calculating fitness of all individuals")
         self.calculate_fitness()
 
         next_gen_individuals =\
@@ -135,3 +150,45 @@ class Environment:
         self.current_generation = Generation(
             self.get_gen_number() + 1,
             next_gen_individuals)
+
+
+def run_genetic(env: Environment) -> None:
+    for _ in range(hyper_parameters.max_gen):
+        best_gen_fenotype = env.get_best_fenotype()
+        best_gen_fenotype.save(f"generated_imgs/gen_{env.get_gen_number()}.png")
+        env.evolve()
+
+    print("Reached max gen!")
+
+def start_genetic(objective_image: Image.Image,
+                hyper_parameters: HyperParameters) -> Environment:
+    print("Will start the genetic algorithm!")
+    env = Environment(objective_image, hyper_parameters)
+    run_genetic(env)
+    return env
+
+def continue_genetic_execution(env: Environment) -> Environment:
+    print("Will continue executing!")
+    run_genetic(env)
+    return env
+
+if __name__ == "__main__":
+    from fitness_functions import ssim_fitness
+    from crossover_functions import one_point_crossover
+    objective_image = Image.open('test/objective_1.png')
+    hyper_parameters = HyperParameters(
+        fitness_function=ssim_fitness,
+        crossover_function=one_point_crossover,
+        cap_population_size=50,
+        top_individuals_percentage=0.5,
+        mutation_probability=0.7,
+        mutation_quantity=.3,
+        max_gen=1000)
+
+    continue_exe = True
+    env = start_genetic(objective_image, hyper_parameters)
+    while continue_exe:
+        print("Finished execution! Want to continue? (y/n)")
+        continue_exe = input() == 'y'
+        if continue_exe:
+            continue_genetic_execution(env)
