@@ -8,10 +8,26 @@ from constants import CANVAS_SIZE
 
 class MyRect:
     def __init__(self, initial_point:tuple[int, int], 
-                 end_point:tuple[int, int], color:tuple[int, int, int])-> None:
+                 end_point:tuple[int, int], color:tuple[int, int, int, int])-> None:
         self.initial_point = initial_point
         self.end_point = end_point
         self.color = color
+    
+    def is_within_bounds(self) -> bool:
+        return (self.initial_point[0] < CANVAS_SIZE[0] and
+            self.initial_point[1] < CANVAS_SIZE[1] and
+            self.end_point[0] < CANVAS_SIZE[0] and
+            self.end_point[1] < CANVAS_SIZE[1])
+    
+    def end_point_is_valid(self) -> bool:
+        return (self.initial_point[0] < self.end_point[0] and
+            self.initial_point[1] < self.end_point[1])
+    
+    def color_is_valid(self) -> bool:
+        return (self.color[0] >= 0 and self.color[0] <= 255 and
+            self.color[1] >= 0 and self.color[1] <= 255 and
+            self.color[2] >= 0 and self.color[2] <= 255 and
+            self.color[3] >= 0 and self.color[3] <= 255)
 
 
 class Genotype:
@@ -27,37 +43,57 @@ class Genotype:
     def mutate_fig_quantity(self, mutation_quantity: float) -> None:
         self.figure_quantity = math.ceil(self.figure_quantity + \
             mutation_quantity * self.figure_quantity)
+        if self.figure_quantity < 1:
+            self.figure_quantity = 1
 
     def mutate_figure_form(self,
         figure: MyRect, mutation_quantity: float
     ) -> None:
+        old_initial_point = figure.initial_point
+        old_end_point = figure.end_point 
+
         figure.initial_point = (
             math.ceil(figure.initial_point[0] +\
                       mutation_quantity * figure.initial_point[0]),
             math.ceil(figure.initial_point[1] +\
                       mutation_quantity * figure.initial_point[1])
         )
+        if not figure.is_within_bounds():
+            figure.initial_point = old_initial_point
+            return
+
         figure.end_point = (
             math.ceil(figure.end_point[0] +\
                       mutation_quantity * figure.end_point[0]),
             math.ceil(figure.end_point[1] +\
                       mutation_quantity * figure.end_point[1])
         )
+        if not figure.end_point_is_valid() or not figure.is_within_bounds():
+            figure.end_point = old_end_point
+            if not figure.end_point_is_valid():
+                figure.initial_point = old_initial_point
+        
+        return
     
     def mutate_figure_color(self,
         figure: MyRect, mutation_quantity: float
     ) -> None:
+        old_color = figure.color
         figure.color = (
             math.ceil(figure.color[0] + mutation_quantity * figure.color[0]),
             math.ceil(figure.color[1] + mutation_quantity * figure.color[1]),
-            math.ceil(figure.color[2] + mutation_quantity * figure.color[2])
+            math.ceil(figure.color[2] + mutation_quantity * figure.color[2]),
+            math.ceil(figure.color[3] + mutation_quantity * figure.color[3])
         )
+        if not figure.color_is_valid():
+            figure.color = old_color
 
     def mutate(self,
         mutation_probability: float,
         mutation_quantity: float
     ) -> bool:
         mutated = False
+        mutation_quantity = random.choice([-1, 1]) * mutation_quantity
 
         if random.random() < mutation_probability:
             mutated = True
@@ -73,6 +109,24 @@ class Genotype:
                 self.mutate_figure_color(figure, mutation_quantity)
         
         return mutated
+    
+    def randomize_figures(self) -> None:
+        for _ in range(self.figure_quantity):
+            initial_point = (
+                random.randint(0, CANVAS_SIZE[0]-1),
+                random.randint(0, CANVAS_SIZE[1]-1))
+
+            figure = MyRect(
+                initial_point = initial_point,
+                end_point = (random.randint(initial_point[0], CANVAS_SIZE[0]),
+                    random.randint(initial_point[1], CANVAS_SIZE[1])),
+                color = (
+                    random.randint(0, 255),
+                    random.randint(0, 255),
+                    random.randint(0, 255),
+                    random.randint(0, 255))
+            )
+            self.figures.append(figure)
 
 class Individual:
     def __init__(self,
@@ -120,9 +174,6 @@ class Individual:
             self.parents = parents
         else:
             raise Exception("Parents already set")
-    
-    def randomize_figures(self) -> None:
-        pass
     
     def make_fenotype(self) -> Image.Image:
         canvas = Image.new("RGB", CANVAS_SIZE, ImageColor.getrgb("white"))

@@ -76,7 +76,7 @@ class Environment:
         for _ in range(self.cap_population_size):
             figure_quantity = random.randint(1, 5)
             individual = Individual(figure_quantity)
-            individual.randomize_figures()
+            individual.get_genotype().randomize_figures()
 
             population.append(individual)
 
@@ -152,14 +152,25 @@ class Environment:
             next_gen_individuals)
 
 
-def run_genetic(objective_image: Image.Image,
-                hyper_parameters: HyperParameters) -> None:
-    print("Will start the genetic algorithm!")
-    env = Environment(objective_image, hyper_parameters)
+def run_genetic(env: Environment) -> None:
     for _ in range(hyper_parameters.max_gen):
         best_gen_fenotype = env.get_best_fenotype()
         best_gen_fenotype.save(f"generated_imgs/gen_{env.get_gen_number()}.png")
         env.evolve()
+
+    print("Reached max gen!")
+
+def start_genetic(objective_image: Image.Image,
+                hyper_parameters: HyperParameters) -> Environment:
+    print("Will start the genetic algorithm!")
+    env = Environment(objective_image, hyper_parameters)
+    run_genetic(env)
+    return env
+
+def continue_genetic_execution(env: Environment) -> Environment:
+    print("Will continue executing!")
+    run_genetic(env)
+    return env
 
 if __name__ == "__main__":
     from fitness_functions import ssim_fitness
@@ -170,7 +181,14 @@ if __name__ == "__main__":
         crossover_function=one_point_crossover,
         cap_population_size=50,
         top_individuals_percentage=0.5,
-        mutation_probability=1.0,
-        mutation_quantity=1.0,
-        max_gen=100)
-    run_genetic(objective_image, hyper_parameters)
+        mutation_probability=0.7,
+        mutation_quantity=.3,
+        max_gen=1000)
+
+    continue_exe = True
+    env = start_genetic(objective_image, hyper_parameters)
+    while continue_exe:
+        print("Finished execution! Want to continue? (y/n)")
+        continue_exe = input() == 'y'
+        if continue_exe:
+            continue_genetic_execution(env)
