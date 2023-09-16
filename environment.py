@@ -1,20 +1,32 @@
-from typing import Callable, Union
+from typing import Callable, Union, TYPE_CHECKING
 import random
 import math
-from PIL import Image
+from PIL import Image  #type: ignore
 from dataclasses import dataclass
 
-from individual import Individual
+from individual import Individual 
+
+
+if TYPE_CHECKING:
+    from reproduction_policies import ReproductionPolicy
+
 
 @dataclass
 class HyperParameters:
     fitness_function: Callable[[Image.Image, Image.Image], float]
     crossover_function: Callable[[Individual, Individual], Individual]
+    match_making_method: Callable[[list[Individual]], list[tuple[Individual,
+                                                                 Individual]]]
+    reproduction_policy: Union['ReproductionPolicy', None] = None
     cap_population_size: int = 50
     top_individuals_percentage: float = 0.1
     mutation_probability: float = 0.1
     mutation_quantity: float = 0.1
     max_gen:int = 100
+
+    def set_reproduction_policy(self, reproduction_policy: 'ReproductionPolicy') -> None:
+        self.reproduction_policy = reproduction_policy
+
 
 class Generation:
     def __init__(self,
@@ -60,6 +72,7 @@ class Environment:
 
         self.cap_population_size = hyper_parameters.cap_population_size
         self.fitness_function = hyper_parameters.fitness_function
+        self.match_making_method = hyper_parameters.match_making_method
         self.top_individuals_percentage =\
             hyper_parameters.top_individuals_percentage
         self.crossover_function = hyper_parameters.crossover_function
@@ -69,12 +82,16 @@ class Environment:
         self.objective = objective
         initial_population = self.generate_initial_population()
         self.current_generation.set_population(initial_population)
+
+        if not hyper_parameters.reproduction_policy:
+            raise ValueError("Reproduction policy not set!")
+        self.reproduction_policy = hyper_parameters.reproduction_policy
     
     def generate_initial_population(self) -> list[Individual]:
         print("Generating initial population!")
         population: list[Individual] = []
         for _ in range(self.cap_population_size):
-            figure_quantity = random.randint(1, 5)
+            figure_quantity = random.randint(3, 10)
             individual = Individual(figure_quantity)
             individual.get_genotype().randomize_figures()
 
@@ -103,17 +120,12 @@ class Environment:
     
     def cross_top_individuals(self) -> list[Individual]:
         top_individuals = self.get_top_individuals()
-        fathers = top_individuals[:len(top_individuals)//2]
-        mothers = top_individuals[len(top_individuals)//2:]
-
-        if len(top_individuals) % 2 == 1:
-            mothers.append(random.choice(top_individuals))
-            fathers.append(top_individuals[-1])
+        pairs = self.match_making_method(top_individuals)
 
         offspring = []
-        for i in range(len(fathers)):
-            child = self.crossover_function(fathers[i], mothers[i])
-            child.set_parents((fathers[i], mothers[i]))
+        for pair in pairs:
+            child = self.crossover_function(pair[0], pair[1])
+            child.set_parents((pair[0], pair[1]))
             offspring.append(child)
         
         return offspring
@@ -138,7 +150,9 @@ class Environment:
     def evolve(self) -> None:
         print("Evolving to next gen!")
         self.calculate_fitness()
-        offspring = self.cross_top_individuals()
+
+        offspring = self.reproduction_policy.reproduce(self.current_generation)
+
         self.mutate_individuals(offspring)
         self.current_generation.add_individuals(offspring)
 
@@ -175,15 +189,19 @@ def continue_genetic_execution(env: Environment) -> Environment:
 if __name__ == "__main__":
     from fitness_functions import ssim_fitness
     from crossover_functions import one_point_crossover
+    from match_making_methods import halves
+    from reproduction_policies import Elitist
     objective_image = Image.open('test/objective_1.png')
     hyper_parameters = HyperParameters(
         fitness_function=ssim_fitness,
         crossover_function=one_point_crossover,
+        match_making_method=halves,
         cap_population_size=50,
         top_individuals_percentage=0.2,
         mutation_probability=0.7,
-        mutation_quantity=.45,
+        mutation_quantity=.2,
         max_gen=100_000)
+    hyper_parameters.set_reproduction_policy(Elitist(hyper_parameters))
 
     continue_exe = True
     env = start_genetic(objective_image, hyper_parameters)

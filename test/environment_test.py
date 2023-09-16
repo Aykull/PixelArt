@@ -2,7 +2,7 @@ import unittest
 from typing import Any
 import random        
 import math
-from PIL import Image
+from PIL import Image #type: ignore
 
 from environment import Environment, HyperParameters
 from individual import Individual
@@ -23,6 +23,9 @@ def dummy_fitness_function(objective:Image.Image, individual_image:Image.Image) 
 def dummy_crossover_function(father:Individual, mother:Individual) -> Individual:
     return Individual(5)
 
+def dummy_match_making_method(individuals:list[Individual]) -> list[tuple[Individual, Individual]]:
+    return list(zip(individuals, individuals))
+
 class TestEnvironment(unittest.TestCase):
     objective_1:Image.Image
     hyper_parameters:HyperParameters
@@ -35,6 +38,7 @@ class TestEnvironment(unittest.TestCase):
         cls.hyper_parameters = HyperParameters(
             dummy_fitness_function,
             dummy_crossover_function,
+            dummy_match_making_method,
             cap_population_size=50,
             top_individuals_percentage=0.5,
             mutation_probability=1.0,

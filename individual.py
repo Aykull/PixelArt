@@ -1,8 +1,8 @@
 import math
 import random
-from PIL import Image, ImageDraw, ImageColor
+from PIL import Image, ImageDraw, ImageColor #type: ignore
 from typing import Union
-from faker import Faker
+from faker import Faker  #type: ignore
 
 from constants import CANVAS_SIZE
 
@@ -111,6 +111,7 @@ class Genotype:
         return mutated
     
     def randomize_figures(self) -> None:
+        self.figures = []
         for _ in range(self.figure_quantity):
             initial_point = (
                 random.randint(0, CANVAS_SIZE[0]-1),

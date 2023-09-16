@@ -1,6 +1,6 @@
-import ssim
+import ssim  #type: ignore
 from typing import cast
-from PIL import Image
+from PIL import Image  #type: ignore
 
 def ssim_fitness(img1:Image.Image, img2:Image.Image) -> float:
     return cast(float, ssim.compute_ssim(img1, img2))
