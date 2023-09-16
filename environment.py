@@ -180,10 +180,10 @@ if __name__ == "__main__":
         fitness_function=ssim_fitness,
         crossover_function=one_point_crossover,
         cap_population_size=50,
-        top_individuals_percentage=0.5,
+        top_individuals_percentage=0.2,
         mutation_probability=0.7,
-        mutation_quantity=.3,
-        max_gen=1000)
+        mutation_quantity=.45,
+        max_gen=100_000)
 
     continue_exe = True
     env = start_genetic(objective_image, hyper_parameters)
