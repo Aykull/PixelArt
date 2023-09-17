@@ -23,7 +23,8 @@ class Elitist(ReproductionPolicy):
         pairs = self.hyperparameters.match_making_method(top_individuals)
         offspring = []
         for pair in pairs:
-            child = self.hyperparameters.crossover_function(pair[0], pair[1])
+            child = self.hyperparameters.crossover_function(
+                pair[0], pair[1], generation.get_gen_number())
             child.set_parents((pair[0], pair[1]))
             offspring.append(child)
         return offspring

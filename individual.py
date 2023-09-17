@@ -13,6 +13,24 @@ class MyRect:
         self.end_point = end_point
         self.color = color
     
+    @classmethod
+    def random_rect(cls) -> 'MyRect':
+        initial_point = (
+            random.randint(0, CANVAS_SIZE[0]-1),
+            random.randint(0, CANVAS_SIZE[1]-1))
+
+        rect = cls(
+            initial_point = initial_point,
+            end_point = (random.randint(initial_point[0], CANVAS_SIZE[0]),
+                random.randint(initial_point[1], CANVAS_SIZE[1])),
+            color = (
+                random.randint(0, 255),
+                random.randint(0, 255),
+                random.randint(0, 255),
+                random.randint(0, 255))
+        )
+        return rect
+    
     def is_within_bounds(self) -> bool:
         return (self.initial_point[0] < CANVAS_SIZE[0] and
             self.initial_point[1] < CANVAS_SIZE[1] and
@@ -41,10 +59,20 @@ class Genotype:
         return self.figures
 
     def mutate_fig_quantity(self, mutation_quantity: float) -> None:
-        self.figure_quantity = math.ceil(self.figure_quantity + \
-            mutation_quantity * self.figure_quantity)
+        if mutation_quantity < 0:
+            figure_difference = math.floor(mutation_quantity * self.figure_quantity)
+        else:
+            figure_difference = math.ceil(mutation_quantity * self.figure_quantity)
+
+        self.figure_quantity += figure_difference
+
         if self.figure_quantity < 1:
             self.figure_quantity = 1
+
+        if self.figure_quantity < len(self.figures):
+            self.figures.pop(random.randint(0, len(self.figures)-1))
+        elif self.figure_quantity > len(self.figures):
+            self.figures.append(MyRect.random_rect())
 
     def mutate_figure_form(self,
         figure: MyRect, mutation_quantity: float
@@ -113,33 +141,21 @@ class Genotype:
     def randomize_figures(self) -> None:
         self.figures = []
         for _ in range(self.figure_quantity):
-            initial_point = (
-                random.randint(0, CANVAS_SIZE[0]-1),
-                random.randint(0, CANVAS_SIZE[1]-1))
-
-            figure = MyRect(
-                initial_point = initial_point,
-                end_point = (random.randint(initial_point[0], CANVAS_SIZE[0]),
-                    random.randint(initial_point[1], CANVAS_SIZE[1])),
-                color = (
-                    random.randint(0, 255),
-                    random.randint(0, 255),
-                    random.randint(0, 255),
-                    random.randint(0, 255))
-            )
-            self.figures.append(figure)
+            self.figures.append(MyRect.random_rect())
 
 class Individual:
     def __init__(self,
-        figure_quantity:int, figures: list[MyRect]=[]
+        figure_quantity:int, birth_gen: int, figures: list[MyRect]=[]
     ) -> None:
         self.genotype = Genotype(figure_quantity, figures)
+        self.birth_gen: int = birth_gen
 
         self.fenotype:Union[Image.Image, None] = None
         self.fitness_value:float = 0
         self.name:str = Faker().name()
         self.mutated:bool = False
         self.parents:Union[tuple['Individual', 'Individual'], None] = None
+        self.age: int = 0
 
     def mutate(self, mutation_probability: float,
         mutation_quantity: float
@@ -147,12 +163,21 @@ class Individual:
         self.mutated =\
             self.genotype.mutate(mutation_probability, mutation_quantity)
 
+    def get_birth_gen(self) -> int:
+        return self.birth_gen
+
     def is_mutated(self) -> bool:
         return self.mutated
 
     def set_fitness_value(self, fitness_value: float) -> None:
         self.fitness_value = fitness_value
     
+    def get_age(self) -> int:
+        return self.age
+    
+    def turn_older(self) -> None:
+        self.age += 1
+
     def get_fenotype(self) -> Image.Image:
         if self.fenotype is None:
             self.fenotype = self.make_fenotype()

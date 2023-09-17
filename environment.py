@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 @dataclass
 class HyperParameters:
     fitness_function: Callable[[Image.Image, Image.Image], float]
-    crossover_function: Callable[[Individual, Individual], Individual]
+    crossover_function: Callable[[Individual, Individual, int], Individual]
     match_making_method: Callable[[list[Individual]], list[tuple[Individual,
                                                                  Individual]]]
     reproduction_policy: Union['ReproductionPolicy', None] = None
@@ -23,6 +23,7 @@ class HyperParameters:
     mutation_probability: float = 0.1
     mutation_quantity: float = 0.1
     max_gen:int = 100
+    age_penalty:float = 0.0
 
     def set_reproduction_policy(self, reproduction_policy: 'ReproductionPolicy') -> None:
         self.reproduction_policy = reproduction_policy
@@ -63,6 +64,11 @@ class Generation:
             fitness_sum += individual.fitness_value
         return fitness_sum / len(self.population)
 
+    def age_population(self) -> None:
+        for individual in self.population:
+            if individual.get_birth_gen() != self.gen_number:
+                individual.turn_older()
+
 class Environment:
     def __init__(self,
                  objective: Image.Image,
@@ -78,6 +84,7 @@ class Environment:
         self.crossover_function = hyper_parameters.crossover_function
         self.mutation_probability = hyper_parameters.mutation_probability
         self.mutation_quantity = hyper_parameters.mutation_quantity
+        self.age_penalty = hyper_parameters.age_penalty
 
         self.objective = objective
         initial_population = self.generate_initial_population()
@@ -92,18 +99,23 @@ class Environment:
         population: list[Individual] = []
         for _ in range(self.cap_population_size):
             figure_quantity = random.randint(3, 10)
-            individual = Individual(figure_quantity)
+            individual = Individual(figure_quantity, 0)
             individual.get_genotype().randomize_figures()
 
             population.append(individual)
 
         return population
     
+    def _apply_age_penalty(self, individual: Individual) -> None:
+        individual.fitness_value = (individual.fitness_value -
+                                    self.age_penalty * individual.get_age())
+
     def calculate_fitness(self) -> None:
         for individual in self.current_generation.get_population():
             individual_fitness: float =\
                 self.fitness_function(self.objective, individual.get_fenotype())
             individual.set_fitness_value(individual_fitness)
+            self._apply_age_penalty(individual)
 
         print("\tPopulation has an average fitness of "
               f"{self.get_current_generation().get_average_fitness()}")
@@ -117,18 +129,6 @@ class Environment:
     
     def get_current_population(self) -> list[Individual]:
         return self.current_generation.get_population()
-    
-    def cross_top_individuals(self) -> list[Individual]:
-        top_individuals = self.get_top_individuals()
-        pairs = self.match_making_method(top_individuals)
-
-        offspring = []
-        for pair in pairs:
-            child = self.crossover_function(pair[0], pair[1])
-            child.set_parents((pair[0], pair[1]))
-            offspring.append(child)
-        
-        return offspring
     
     def mutate_individuals(self, individuals_to_mutate: list[Individual]) -> None:
         for individual in individuals_to_mutate:
@@ -164,6 +164,7 @@ class Environment:
         self.current_generation = Generation(
             self.get_gen_number() + 1,
             next_gen_individuals)
+        self.current_generation.age_population()
 
 
 def run_genetic(env: Environment) -> None:
@@ -200,7 +201,8 @@ if __name__ == "__main__":
         top_individuals_percentage=0.2,
         mutation_probability=0.7,
         mutation_quantity=.2,
-        max_gen=100_000)
+        max_gen=100_000,
+        age_penalty=0.0)
     hyper_parameters.set_reproduction_policy(Elitist(hyper_parameters))
 
     continue_exe = True

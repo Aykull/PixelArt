@@ -20,8 +20,8 @@ def is_sorted(array:list[Any]) -> bool:
 def dummy_fitness_function(objective:Image.Image, individual_image:Image.Image) -> float:
     return random.random()
 
-def dummy_crossover_function(father:Individual, mother:Individual) -> Individual:
-    return Individual(5)
+def dummy_crossover_function(father:Individual, mother:Individual, number: int) -> Individual:
+    return Individual(5, 0)
 
 def dummy_match_making_method(individuals:list[Individual]) -> list[tuple[Individual, Individual]]:
     return list(zip(individuals, individuals))
@@ -65,25 +65,6 @@ class TestEnvironment(unittest.TestCase):
         top_indviduals = self.persistent_env.get_top_individuals()
         self.assertEqual(len(top_indviduals), expected_len)
         self.assertTopIndividuals(top_indviduals)
-    
-    def test_should_cross_top_individuals(self) -> None:
-        top_individuals = self.persistent_env.get_top_individuals()
-        offspring = self.persistent_env.cross_top_individuals()
-        for individual in offspring:
-            print(f"Checking individual: {individual}")
-            self.assertIsNotNone(individual)
-            father, mother = individual.get_parents()
-            self.assertIn(father, top_individuals,
-                          "Father is not in top individuals")
-            self.assertIn(mother, top_individuals,
-                          "Mother is not in top individuals")
-    
-    def test_should_mutate_offspring(self) -> None:
-        offspring = self.persistent_env.cross_top_individuals()
-        self.persistent_env.mutate_individuals(offspring)
-        for individual in offspring:
-            self.assertTrue(individual.is_mutated(),
-                            "Individual did not mutate")
     
     def test_should_generate_new_gen(self) -> None:
         past_gen = self.persistent_env.get_current_generation()
