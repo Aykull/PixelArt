@@ -10,7 +10,6 @@ from individual import Individual
 if TYPE_CHECKING:
     from reproduction_policies import ReproductionPolicy
 
-
 @dataclass
 class HyperParameters:
     fitness_function: Callable[[Image.Image, Image.Image], float]
@@ -25,6 +24,7 @@ class HyperParameters:
     max_gen:int = 100
     age_penalty:float = 0.0
     childs_per_pair:int = 2
+    parallelize:bool = False
 
     def set_reproduction_policy(self, reproduction_policy: 'ReproductionPolicy') -> None:
         self.reproduction_policy = reproduction_policy
@@ -91,6 +91,9 @@ class Environment:
         initial_population = self.generate_initial_population()
         self.current_generation.set_population(initial_population)
 
+        self.highest_fitness: float = 0.0
+        self.highest_fit_generation: int = 0
+
         if not hyper_parameters.reproduction_policy:
             raise ValueError("Reproduction policy not set!")
         self.reproduction_policy = hyper_parameters.reproduction_policy
@@ -119,6 +122,10 @@ class Environment:
                 self.fitness_function(self.objective, individual.get_fenotype())
             individual.set_fitness_value(individual_fitness)
             self._apply_age_penalty(individual)
+
+            if individual.get_fitness() > self.highest_fitness:
+                self.highest_fitness = individual.get_fitness()
+                self.highest_fit_generation = individual.get_birth_gen()
 
         print("\tPopulation has an average fitness of "
               f"{self.get_current_generation().get_average_fitness()}")
@@ -170,7 +177,7 @@ class Environment:
         self.current_generation.age_population()
 
 
-def run_genetic(env: Environment) -> None:
+def run_genetic(env: Environment, hyper_parameters: HyperParameters) -> None:
     for _ in range(hyper_parameters.max_gen):
         best_individual = env.get_top_n_individuals(1)[0]
         print(f"\tGeneration best individual is {best_individual.name}"
@@ -187,37 +194,56 @@ def start_genetic(objective_image: Image.Image,
                 hyper_parameters: HyperParameters) -> Environment:
     print("Will start the genetic algorithm!")
     env = Environment(objective_image, hyper_parameters)
-    run_genetic(env)
+    run_genetic(env, hyper_parameters)
     return env
 
-def continue_genetic_execution(env: Environment) -> Environment:
+def continue_genetic_execution(
+    env: Environment, hyper_parameters: HyperParameters
+) -> Environment:
     print("Will continue executing!")
-    run_genetic(env)
+    run_genetic(env, hyper_parameters)
     return env
 
-if __name__ == "__main__":
+
+def main() -> None:
     from fitness_functions import ssim_fitness
     from crossover_functions import one_point_crossover
-    from match_making_methods import halves
-    from reproduction_policies import Elitist
+    from match_making_methods import halves, random_shuffle
+    from reproduction_policies import Elitist, Stratified
+
     objective_image = Image.open('test/objective_1.png')
     hyper_parameters = HyperParameters(
         fitness_function=ssim_fitness,
         crossover_function=one_point_crossover,
-        match_making_method=halves,
+        match_making_method=random_shuffle,
         cap_population_size=50,
         top_individuals_percentage=0.2,
         mutation_probability=0.7,
         mutation_quantity=.2,
-        max_gen=100_000,
+        max_gen=3_000,
         childs_per_pair=2,
+        parallelize=False,
         age_penalty=0.001)
-    hyper_parameters.set_reproduction_policy(Elitist(hyper_parameters))
+    hyper_parameters.set_reproduction_policy(Stratified(hyper_parameters))
 
     continue_exe = True
-    env = start_genetic(objective_image, hyper_parameters)
-    while continue_exe:
-        print("Finished execution! Want to continue? (y/n)")
-        continue_exe = input() == 'y'
-        if continue_exe:
-            continue_genetic_execution(env)
+    env = None
+    try:
+        env = start_genetic(objective_image, hyper_parameters)
+        while continue_exe:
+            print("Finished execution! Want to continue? (y/n)")
+            print(f"Highest fitness achieved: {env.highest_fitness}"
+                f" in generation: {env.highest_fit_generation}")
+            continue_exe = input() == 'y'
+            if continue_exe:
+                continue_genetic_execution(env, hyper_parameters)
+    except Exception:
+        if env:
+            print(f"Highest fitness achieved: {env.highest_fitness}"
+                f" in generation: {env.highest_fit_generation}")
+    
+
+if __name__ == "__main__":
+    # import cProfile
+    # cProfile.run('main()', sort='cumulative')
+    main()

@@ -163,6 +163,9 @@ class Individual:
         self.mutated =\
             self.genotype.mutate(mutation_probability, mutation_quantity)
 
+    def get_fitness(self) -> float:
+        return self.fitness_value
+
     def get_birth_gen(self) -> int:
         return self.birth_gen
 
