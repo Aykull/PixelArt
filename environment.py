@@ -24,6 +24,7 @@ class HyperParameters:
     mutation_quantity: float = 0.1
     max_gen:int = 100
     age_penalty:float = 0.0
+    childs_per_pair:int = 2
 
     def set_reproduction_policy(self, reproduction_policy: 'ReproductionPolicy') -> None:
         self.reproduction_policy = reproduction_policy
@@ -209,7 +210,8 @@ if __name__ == "__main__":
         mutation_probability=0.7,
         mutation_quantity=.2,
         max_gen=100_000,
-        age_penalty=0.0)
+        childs_per_pair=2,
+        age_penalty=0.001)
     hyper_parameters.set_reproduction_policy(Elitist(hyper_parameters))
 
     continue_exe = True
