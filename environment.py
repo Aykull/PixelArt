@@ -109,6 +109,8 @@ class Environment:
     def _apply_age_penalty(self, individual: Individual) -> None:
         individual.fitness_value = (individual.fitness_value -
                                     self.age_penalty * individual.get_age())
+        if individual.fitness_value < 0:
+            individual.fitness_value = 0
 
     def calculate_fitness(self) -> None:
         for individual in self.current_generation.get_population():
@@ -169,7 +171,12 @@ class Environment:
 
 def run_genetic(env: Environment) -> None:
     for _ in range(hyper_parameters.max_gen):
-        best_gen_fenotype = env.get_best_fenotype()
+        best_individual = env.get_top_n_individuals(1)[0]
+        print(f"\tGeneration best individual is {best_individual.name}"
+              f" from gen: {best_individual.get_birth_gen()},"
+              f" age: {best_individual.get_age()}"
+              f" with {best_individual.fitness_value}")
+        best_gen_fenotype = best_individual.get_fenotype()
         best_gen_fenotype.save(f"generated_imgs/gen_{env.get_gen_number()}.png")
         env.evolve()
 
