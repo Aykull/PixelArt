@@ -1,11 +1,14 @@
 import unittest
-from typing import Any
+from typing import Any, TYPE_CHECKING
 import random        
 import math
 from PIL import Image #type: ignore
 
 from environment import Environment, HyperParameters
 from individual import Individual
+
+if TYPE_CHECKING:
+    from environment import Generation
 
 def is_sorted(array:list[Any]) -> bool:
     if len(array) <= 1:
@@ -26,6 +29,11 @@ def dummy_crossover_function(father:Individual, mother:Individual, number: int) 
 def dummy_match_making_method(individuals:list[Individual]) -> list[tuple[Individual, Individual]]:
     return list(zip(individuals, individuals))
 
+def dummy_survival_function(generation: 'Generation',
+                            hyper_parameters: 'HyperParameters'
+) -> list[Individual]:
+    return generation.get_population()[:hyper_parameters.cap_population_size]
+
 class TestEnvironment(unittest.TestCase):
     objective_1:Image.Image
     hyper_parameters:HyperParameters
@@ -39,6 +47,7 @@ class TestEnvironment(unittest.TestCase):
             dummy_fitness_function,
             dummy_crossover_function,
             dummy_match_making_method,
+            survival_function=dummy_survival_function,
             cap_population_size=50,
             top_individuals_percentage=0.5,
             mutation_probability=1.0,

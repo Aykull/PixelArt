@@ -16,6 +16,8 @@ class HyperParameters:
     crossover_function: Callable[[Individual, Individual, int], Individual]
     match_making_method: Callable[[list[Individual]], list[tuple[Individual,
                                                                  Individual]]]
+    survival_function: Callable[['Generation', 'HyperParameters'], list[Individual]]
+
     reproduction_policy: Union['ReproductionPolicy', None] = None
     cap_population_size: int = 50
     top_individuals_percentage: float = 0.1
@@ -23,7 +25,7 @@ class HyperParameters:
     mutation_quantity: float = 0.1
     max_gen:int = 100
     age_penalty:float = 0.0
-    childs_per_pair:int = 2
+    childs_per_pair:int = 3
     parallelize:bool = False
 
     def set_reproduction_policy(self, reproduction_policy: 'ReproductionPolicy') -> None:
@@ -76,10 +78,13 @@ class Environment:
                  hyper_parameters: HyperParameters
     ) -> None:
         self.current_generation = Generation(0)
+        self.hyper_parameters = hyper_parameters
 
         self.cap_population_size = hyper_parameters.cap_population_size
         self.fitness_function = hyper_parameters.fitness_function
         self.match_making_method = hyper_parameters.match_making_method
+        self.survival_function = hyper_parameters.survival_function
+
         self.top_individuals_percentage =\
             hyper_parameters.top_individuals_percentage
         self.crossover_function = hyper_parameters.crossover_function
@@ -129,6 +134,7 @@ class Environment:
 
         print("\tPopulation has an average fitness of "
               f"{self.get_current_generation().get_average_fitness()}")
+        self.current_generation.population.sort(reverse=True)
 
     def get_top_individuals(self) -> list[Individual]:
         quantity = math.floor(self.top_individuals_percentage * self.cap_population_size)
@@ -170,7 +176,9 @@ class Environment:
         self.calculate_fitness()
 
         next_gen_individuals =\
-            self.get_top_n_individuals(self.cap_population_size)
+            self.survival_function(self.get_current_generation(), 
+                                   self.hyper_parameters)[:self.cap_population_size]
+
         self.current_generation = Generation(
             self.get_gen_number() + 1,
             next_gen_individuals)
@@ -210,18 +218,20 @@ def main() -> None:
     from crossover_functions import one_point_crossover
     from match_making_methods import halves, random_shuffle
     from reproduction_policies import Elitist, Stratified
+    from survival_functions import top_survive, elite_survive
 
     objective_image = Image.open('test/objective_1.png')
     hyper_parameters = HyperParameters(
         fitness_function=ssim_fitness,
         crossover_function=one_point_crossover,
         match_making_method=random_shuffle,
+        survival_function=top_survive,
         cap_population_size=50,
         top_individuals_percentage=0.2,
-        mutation_probability=0.7,
-        mutation_quantity=.2,
+        mutation_probability=0.75,
+        mutation_quantity=.8,
         max_gen=3_000,
-        childs_per_pair=2,
+        childs_per_pair=4,
         parallelize=False,
         age_penalty=0.001)
     hyper_parameters.set_reproduction_policy(Stratified(hyper_parameters))
