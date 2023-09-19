@@ -107,7 +107,8 @@ class Environment:
         print("Generating initial population!")
         population: list[Individual] = []
         for _ in range(self.cap_population_size):
-            figure_quantity = random.randint(3, 10)
+            # figure_quantity = random.randint(3, 10)
+            figure_quantity = random.randint(1, 5)
             individual = Individual(figure_quantity, 0)
             individual.get_genotype().randomize_figures()
 
@@ -193,7 +194,7 @@ def run_genetic(env: Environment, hyper_parameters: HyperParameters) -> None:
               f" age: {best_individual.get_age()}"
               f" with {best_individual.fitness_value}")
         best_gen_fenotype = best_individual.get_fenotype()
-        best_gen_fenotype.save(f"generated_imgs/gen_{env.get_gen_number()}.png")
+        best_gen_fenotype.save(f"generated_imgs2/gen_{env.get_gen_number()}.png")
         env.evolve()
 
     print("Reached max gen!")
@@ -220,7 +221,7 @@ def main() -> None:
     from reproduction_policies import Elitist, Stratified
     from survival_functions import top_survive, elite_survive
 
-    objective_image = Image.open('test/objective_1.png')
+    objective_image = Image.open('test/objective_2.png')
     hyper_parameters = HyperParameters(
         fitness_function=ssim_fitness,
         crossover_function=one_point_crossover,
@@ -228,12 +229,12 @@ def main() -> None:
         survival_function=top_survive,
         cap_population_size=50,
         top_individuals_percentage=0.2,
-        mutation_probability=0.75,
-        mutation_quantity=.8,
-        max_gen=3_000,
-        childs_per_pair=4,
-        parallelize=False,
-        age_penalty=0.001)
+        mutation_probability=0.7,
+        mutation_quantity=.2,
+        max_gen=5_000,
+        childs_per_pair=2,
+        parallelize=True,
+        age_penalty=0.000001)
     hyper_parameters.set_reproduction_policy(Stratified(hyper_parameters))
 
     continue_exe = True

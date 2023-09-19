@@ -2,6 +2,7 @@ import math
 import random
 import abc
 import multiprocessing
+from contextlib import closing
 from typing import Callable
 
 from individual import Individual
@@ -19,7 +20,6 @@ def crossover_worker(
         for _ in range(childs_per_pair):
             child = crossover_function(
                 pair[0], pair[1], gen_number)
-            child.set_parents((pair[0], pair[1]))
             pair_childs.append(child)
         offspring.extend(pair_childs)
     return offspring
@@ -28,13 +28,11 @@ class ReproductionPolicy(abc.ABC):
     def __init__(self, hyperparameters: HyperParameters) -> None:
         self.hyperparameters = hyperparameters
     
-    
     def _crossover_pairs_parallel(
         self, pairs: list[tuple[Individual, Individual]], gen_number: int
     ) -> list[Individual]:
 
-        # num_processes = math.ceil(multiprocessing.cpu_count() / 2)
-        num_processes = 2
+        num_processes = math.ceil(multiprocessing.cpu_count() / 2)
         
         chunks = [pairs[i::num_processes] for i in range(num_processes)]
         offspring: list[Individual] = []
@@ -42,9 +40,10 @@ class ReproductionPolicy(abc.ABC):
                       self.hyperparameters.crossover_function)
                      for chunk in chunks]
 
-        with multiprocessing.Pool(processes=num_processes) as pool:
+        with closing(multiprocessing.Pool(processes=num_processes)) as pool:
             worker_offsprings: list[list[Individual]] =\
                 pool.starmap(crossover_worker, arguments)
+            pool.close()
         
         for worker_offspring in worker_offsprings:
             offspring.extend(worker_offspring)
