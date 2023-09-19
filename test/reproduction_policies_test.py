@@ -20,6 +20,7 @@ class StratifiedTest(unittest.TestCase):
             cap_population_size=10,
             fitness_function=lambda x, y: 0,
             match_making_method=match_making_mock,
+            survival_function=lambda x, y: [],
             top_individuals_percentage=0.2,
             crossover_function=lambda x, y, z: Individual(0, 1),
             childs_per_pair=2

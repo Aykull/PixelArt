@@ -121,7 +121,7 @@ class Genotype:
         mutation_quantity: float
     ) -> bool:
         mutated = False
-        mutation_quantity = random.choice([-1, 1]) * mutation_quantity
+        mutation_quantity = random.choice([-1, 1]) * random.random() * mutation_quantity
 
         if random.random() < mutation_probability:
             mutated = True
@@ -213,6 +213,9 @@ class Individual:
                 fill=figure.color)
         return canvas
     
+    def is_from_gen(self, gen_number: int) -> bool:
+        return self.birth_gen == gen_number
+    
     def __lt__(self, other:'Individual') -> bool:
         return self.fitness_value < other.fitness_value
     
@@ -230,4 +233,11 @@ class Individual:
     
     def __repr__(self) -> str:
         return self.__str__()
+    
+    def __eq__(self, other:object) -> bool:
+        if not isinstance(other, Individual):
+            return False
+
+        return (self.fitness_value == other.fitness_value and
+                self.name == other.name)
 
