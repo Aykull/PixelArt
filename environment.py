@@ -221,7 +221,7 @@ def main() -> None:
     from reproduction_policies import Elitist, Stratified
     from survival_functions import top_survive, elite_survive
 
-    objective_image = Image.open('test/objective_2.png')
+    objective_image = Image.open('test/objective_3.png')
     hyper_parameters = HyperParameters(
         fitness_function=ssim_fitness,
         crossover_function=one_point_crossover,
