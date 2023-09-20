@@ -231,7 +231,7 @@ def main() -> None:
         top_individuals_percentage=0.2,
         mutation_probability=0.7,
         mutation_quantity=.2,
-        max_gen=5_000,
+        max_gen=4_000,
         childs_per_pair=2,
         parallelize=True,
         age_penalty=0.000001)
