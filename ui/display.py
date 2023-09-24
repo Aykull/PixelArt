@@ -13,7 +13,11 @@ main_win.resizable(False, False)
 gens_out = 10
 pops_out = 10
 
+<<<<<<< HEAD
 fitness_options = ["Opción 1", "Opción 2"]
+=======
+fitness_options = ["Opción 1", "Opción 2", "Opción 3"]
+>>>>>>> 1b5cd353bb9114792dd737d8bade421f65f0c34e
 fit_option = tk.StringVar()
 crossover_options = ["Opción 1", "Opción 2", "Opción 3"]
 cross_option = tk.StringVar()
