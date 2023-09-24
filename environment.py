@@ -1,4 +1,5 @@
 from typing import Callable, Union, TYPE_CHECKING
+import matplotlib.pyplot as plt
 import random
 import math
 from PIL import Image  #type: ignore
@@ -99,6 +100,8 @@ class Environment:
         self.highest_fitness: float = 0.0
         self.highest_fit_generation: int = 0
 
+
+
         if not hyper_parameters.reproduction_policy:
             raise ValueError("Reproduction policy not set!")
         self.reproduction_policy = hyper_parameters.reproduction_policy
@@ -187,31 +190,36 @@ class Environment:
 
 
 def run_genetic(env: Environment, hyper_parameters: HyperParameters) -> None:
+    gen_graph = []
+    av_fit_graph = []
     for _ in range(hyper_parameters.max_gen):
         best_individual = env.get_top_n_individuals(1)[0]
         print(f"\tGeneration best individual is {best_individual.name}"
               f" from gen: {best_individual.get_birth_gen()},"
               f" age: {best_individual.get_age()}"
               f" with {best_individual.fitness_value}")
+        gen_graph.append(env.get_gen_number())
+        av_fit_graph.append(env.get_current_generation().get_average_fitness())
         best_gen_fenotype = best_individual.get_fenotype()
         best_gen_fenotype.save(f"generated_imgs2/gen_{env.get_gen_number()}.png")
         env.evolve()
 
     print("Reached max gen!")
+    return gen_graph, av_fit_graph
 
 def start_genetic(objective_image: Image.Image,
-                hyper_parameters: HyperParameters) -> Environment:
+                hyper_parameters: HyperParameters) -> (Environment, list, list):
     print("Will start the genetic algorithm!")
     env = Environment(objective_image, hyper_parameters)
-    run_genetic(env, hyper_parameters)
-    return env
+    gen, av_fit = run_genetic(env, hyper_parameters)
+    return env, gen, av_fit
 
 def continue_genetic_execution(
     env: Environment, hyper_parameters: HyperParameters
-) -> Environment:
+) -> (Environment, list, list):
     print("Will continue executing!")
-    run_genetic(env, hyper_parameters)
-    return env
+    gen, av_fit = run_genetic(env, hyper_parameters)
+    return env, gen, av_fit
 
 
 def main() -> None:
@@ -239,8 +247,10 @@ def main() -> None:
 
     continue_exe = True
     env = None
+    gen = []
+    av_fit = []
     try:
-        env = start_genetic(objective_image, hyper_parameters)
+        env, gen, av_fit = start_genetic(objective_image, hyper_parameters)
         while continue_exe:
             print("Finished execution! Want to continue? (y/n)")
             print(f"Highest fitness achieved: {env.highest_fitness}"
@@ -252,6 +262,14 @@ def main() -> None:
         if env:
             print(f"Highest fitness achieved: {env.highest_fitness}"
                 f" in generation: {env.highest_fit_generation}")
+      
+    plt.plot(gen, av_fit, marker='o', linestyle='-')  
+    plt.xlabel('Generación')
+    plt.ylabel('Fitness')
+    plt.title('Generación vs. Fitness')
+    plt.grid(True)
+    plt.show()
+
     
 
 if __name__ == "__main__":
