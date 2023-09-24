@@ -13,11 +13,8 @@ main_win.resizable(False, False)
 gens_out = 10
 pops_out = 10
 
-<<<<<<< HEAD
+
 fitness_options = ["Opción 1", "Opción 2"]
-=======
-fitness_options = ["Opción 1", "Opción 2", "Opción 3"]
->>>>>>> 1b5cd353bb9114792dd737d8bade421f65f0c34e
 fit_option = tk.StringVar()
 crossover_options = ["Opción 1", "Opción 2", "Opción 3"]
 cross_option = tk.StringVar()
@@ -66,9 +63,9 @@ def update_out_img():
 
 def generate_gif():
     out_img_gif = []
-    for out in os.listdir("gif"):
+    for out in os.listdir("generated_imgs2"):
         if out.endswith((".jpg", ".jpeg", ".png", ".gif")):
-            out_root = os.path.join("gif", out)
+            out_root = os.path.join("generated_imgs2", out)
             out_img_gif.append(out_root)
     out_gif = []
     for out_img_root in out_img_gif:
@@ -76,13 +73,13 @@ def generate_gif():
         resize_out = out_img.resize((500, 500), Image.ANTIALIAS) 
         out_gif.append(resize_out)
 
-    out_gif[0].save("gif\image.gif", save_all=True, append_images=out_gif[1:], duration=500, loop=0)
+    out_gif[0].save("generated_imgs2\out.gif", save_all=True, append_images=out_gif[1:], duration=50, loop=1)
 
 def pop_up_gif():
     pop_up_gif = tk.Toplevel(main_win, width=500, height=500)
     pop_up_gif.title("Resultado como GIF")
 
-    gif = Image.open("gif\image.gif")
+    gif = Image.open("generated_imgs2\out.gif")
     frames = [ImageTk.PhotoImage(frame) for frame in ImageSequence.Iterator(gif)]  
     
     label = tk.Label(pop_up_gif)
@@ -172,6 +169,7 @@ update_out = threading.Thread(target=update_out_img)
 update_out.daemon = True
 update_out.start()
 
+#generate_gif()
 #pop_up_gif()
 
 main_win.mainloop()
