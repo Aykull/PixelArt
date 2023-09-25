@@ -48,6 +48,12 @@ class Generation:
             self.population.sort(reverse=True)
             self.sorted = True
         return self.population[:quantity]
+
+    def get_bot_individuals(self, quantity: int) -> list[Individual]:
+        if not self.sorted:
+            self.population.sort(reverse=True)
+            self.sorted = True
+        return self.population[quantity:]
     
     def add_individuals(self, individuals: list[Individual]) -> None:
         self.population.extend(individuals)
@@ -167,7 +173,7 @@ class Environment:
         best_ind = self.get_top_n_individuals(1)[0]
         return best_ind.get_fenotype()
 
-    def evolve(self) -> None:
+    def evolve(self):
         print("Evolving to next gen!")
         self.calculate_fitness()
 
@@ -179,7 +185,7 @@ class Environment:
         print("Calculating fitness of all individuals")
         self.calculate_fitness()
 
-        next_gen_individuals =\
+        next_gen_individuals, dead_population =\
             self.survival_function(self.get_current_generation(), 
                                    self.hyper_parameters)[:self.cap_population_size]
 
@@ -187,6 +193,8 @@ class Environment:
             self.get_gen_number() + 1,
             next_gen_individuals)
         self.current_generation.age_population()
+        dead_population_sort = dict(sorted(dead_population.items()))
+        return dead_population_sort
 
 
 def run_genetic(env: Environment, hyper_parameters: HyperParameters) -> None:
@@ -202,17 +210,17 @@ def run_genetic(env: Environment, hyper_parameters: HyperParameters) -> None:
         av_fit_graph.append(env.get_current_generation().get_average_fitness())
         best_gen_fenotype = best_individual.get_fenotype()
         best_gen_fenotype.save(f"generated_imgs2/gen_{env.get_gen_number()}.png")
-        env.evolve()
-
+        dead_population = env.evolve()
+        
     print("Reached max gen!")
-    return gen_graph, av_fit_graph
+    return gen_graph, av_fit_graph, dead_population
 
 def start_genetic(objective_image: Image.Image,
                 hyper_parameters: HyperParameters) -> (Environment, list, list):
     print("Will start the genetic algorithm!")
     env = Environment(objective_image, hyper_parameters)
-    gen, av_fit = run_genetic(env, hyper_parameters)
-    return env, gen, av_fit
+    gen, av_fit, dead = run_genetic(env, hyper_parameters)
+    return env, gen, av_fit, dead
 
 def continue_genetic_execution(
     env: Environment, hyper_parameters: HyperParameters
@@ -250,7 +258,7 @@ def main() -> None:
     gen = []
     av_fit = []
     try:
-        env, gen, av_fit = start_genetic(objective_image, hyper_parameters)
+        env, gen, av_fit, dead = start_genetic(objective_image, hyper_parameters)
         while continue_exe:
             print("Finished execution! Want to continue? (y/n)")
             print(f"Highest fitness achieved: {env.highest_fitness}"
@@ -262,14 +270,22 @@ def main() -> None:
         if env:
             print(f"Highest fitness achieved: {env.highest_fitness}"
                 f" in generation: {env.highest_fit_generation}")
-      
-    plt.plot(gen, av_fit, marker='o', linestyle='-')  
-    plt.xlabel('Generación')
-    plt.ylabel('Fitness')
-    plt.title('Generación vs. Fitness')
-    plt.grid(True)
-    plt.show()
+    
+    figure, axis = plt.subplots(1, 2, figsize=(12, 5))
+    
+    axis[0].plot(gen, av_fit, marker='o', linestyle='-')
+    axis[0].set_xlabel('Generación')
+    axis[0].set_ylabel('Fitness')
+    axis[0].set_title('Generación vs. Fitness')
 
+    ages = list(dead.keys())
+    population = list(dead.values())
+    axis[1].bar(ages, population, align='center')
+    axis[1].set_xlabel('Edades')
+    axis[1].set_ylabel('Población')
+    axis[1].set_title('Edades vs. Población')
+    
+    plt.show()
     
 
 if __name__ == "__main__":
