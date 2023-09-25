@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
     from environment import Generation, HyperParameters
@@ -6,15 +6,16 @@ if TYPE_CHECKING:
 
 def top_survive(generation: 'Generation',
                 hyper_parameters: 'HyperParameters'
-) -> (list['Individual'], dict):
+) -> list['Individual']:
     cap = hyper_parameters.cap_population_size
-    dead_population = create_graph_dir(generation.get_bot_individuals(cap))
+    next_population = generation.get_top_individuals(cap)
+    update_dead_graph(generation.get_population()[cap:])
     
-    return generation.get_top_individuals(cap), dead_population
+    return next_population
 
 def elite_survive(generation: 'Generation',
                   hyper_parameters:'HyperParameters'
-) -> (list['Individual'], dict):
+) -> list['Individual']:
     population = generation.get_population()
     elite_cut = int(len(population) *
                     hyper_parameters.top_individuals_percentage)
@@ -29,14 +30,18 @@ def elite_survive(generation: 'Generation',
     
     old_individuals.sort(key=lambda x:x.age)
     selected_individuals.extend(old_individuals)
-    dead_population = create_graph_dir(selected_individuals[hyper_parameters.cap_population_size:])
-    return selected_individuals[:hyper_parameters.cap_population_size], dead_population
+    update_dead_graph(selected_individuals[hyper_parameters.cap_population_size:])
+    return selected_individuals[:hyper_parameters.cap_population_size]
 
-graph_dir = {}
-def create_graph_dir(dead_population):
-    count = 0
-    for population in dead_population:
-        count = count + 1
-        graph_dir[population.get_age()] = count
-    return graph_dir
+dead_graph:dict[int, int] = {}
+def update_dead_graph(dead_population: list['Individual']) -> None:
+    global dead_graph
+    for individual in dead_population:
+        if individual.get_age() not in dead_graph:
+            dead_graph[individual.get_age()] = 0
+        dead_graph[individual.get_age()] += 1
+
+def get_dead_graph() -> dict[int, int]:
+    global dead_graph
+    return dead_graph
     
