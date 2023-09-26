@@ -7,7 +7,7 @@ def ssim_fitness(img1:Image.Image, img2:Image.Image) -> float:
 
 
 if __name__ == '__main__':
-    img1 = Image.open('test/objective_1.png')
-    img2 = Image.open('test/objective_1.png')
+    img1 = Image.open('test/objective_3.png')
+    img2 = Image.open('generated_imgs/gen_3.png')
 
     print(ssim_fitness(img1, img2))

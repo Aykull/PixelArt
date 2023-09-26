@@ -2,7 +2,7 @@ import math
 import random
 from PIL import Image, ImageDraw, ImageColor #type: ignore
 from typing import Union
-from faker import Faker  #type: ignore
+from faker import Faker
 
 from constants import CANVAS_SIZE
 

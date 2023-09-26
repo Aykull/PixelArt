@@ -1,9 +1,10 @@
 from typing import Callable, Union, TYPE_CHECKING
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
 import random
 import math
 from PIL import Image  #type: ignore
 from dataclasses import dataclass
+from survival_functions import get_dead_graph
 
 from individual import Individual 
 
@@ -48,6 +49,12 @@ class Generation:
             self.population.sort(reverse=True)
             self.sorted = True
         return self.population[:quantity]
+
+    def get_bot_individuals(self, quantity: int) -> list[Individual]:
+        if not self.sorted:
+            self.population.sort(reverse=True)
+            self.sorted = True
+        return self.population[quantity:]
     
     def add_individuals(self, individuals: list[Individual]) -> None:
         self.population.extend(individuals)
@@ -110,8 +117,8 @@ class Environment:
         print("Generating initial population!")
         population: list[Individual] = []
         for _ in range(self.cap_population_size):
-            # figure_quantity = random.randint(3, 10)
-            figure_quantity = random.randint(1, 5)
+            figure_quantity = random.randint(3, 10)
+            # figure_quantity = random.randint(1, 5)
             individual = Individual(figure_quantity, 0)
             individual.get_genotype().randomize_figures()
 
@@ -201,9 +208,9 @@ def run_genetic(env: Environment, hyper_parameters: HyperParameters) -> None:
         gen_graph.append(env.get_gen_number())
         av_fit_graph.append(env.get_current_generation().get_average_fitness())
         best_gen_fenotype = best_individual.get_fenotype()
-        best_gen_fenotype.save(f"generated_imgs2/gen_{env.get_gen_number()}.png")
+        best_gen_fenotype.save(f"generated_imgs3/gen_{env.get_gen_number()}.png")
         env.evolve()
-
+        
     print("Reached max gen!")
     return gen_graph, av_fit_graph
 
@@ -229,7 +236,7 @@ def main() -> None:
     from reproduction_policies import Elitist, Stratified
     from survival_functions import top_survive, elite_survive
 
-    objective_image = Image.open('test/objective_2.png')
+    objective_image = Image.open('test/objective_1.png')
     hyper_parameters = HyperParameters(
         fitness_function=ssim_fitness,
         crossover_function=one_point_crossover,
@@ -238,11 +245,11 @@ def main() -> None:
         cap_population_size=50,
         top_individuals_percentage=0.2,
         mutation_probability=0.7,
-        mutation_quantity=.2,
+        mutation_quantity=.35,
         max_gen=5_000,
         childs_per_pair=2,
         parallelize=True,
-        age_penalty=0.000001)
+        age_penalty=0.001)
     hyper_parameters.set_reproduction_policy(Stratified(hyper_parameters))
 
     continue_exe = True
@@ -250,7 +257,7 @@ def main() -> None:
     gen = []
     av_fit = []
     try:
-        env, gen, av_fit = start_genetic(objective_image, hyper_parameters)
+        env, gen, av_fit, dead = start_genetic(objective_image, hyper_parameters)
         while continue_exe:
             print("Finished execution! Want to continue? (y/n)")
             print(f"Highest fitness achieved: {env.highest_fitness}"
@@ -262,15 +269,23 @@ def main() -> None:
         if env:
             print(f"Highest fitness achieved: {env.highest_fitness}"
                 f" in generation: {env.highest_fit_generation}")
-      
-    plt.plot(gen, av_fit, marker='o', linestyle='-')  
-    plt.xlabel('Generación')
-    plt.ylabel('Fitness')
-    plt.title('Generación vs. Fitness')
-    plt.grid(True)
-    plt.show()
-
     
+    figure, axis = plt.subplots(1, 2, figsize=(12, 5))
+    
+    axis[0].plot(gen, av_fit, marker='o', linestyle='-')
+    axis[0].set_xlabel('Generación')
+    axis[0].set_ylabel('Fitness')
+    axis[0].set_title('Generación vs. Fitness')
+
+    dead = get_dead_graph()
+    ages = list(dead.keys())
+    population = list(dead.values())
+    axis[1].bar(ages, population, align='center')
+    axis[1].set_xlabel('Edades')
+    axis[1].set_ylabel('Población')
+    axis[1].set_title('Edades vs. Población')
+
+    plt.show()
 
 if __name__ == "__main__":
     # import cProfile
